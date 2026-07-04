@@ -1538,7 +1538,12 @@ const Net={
     const el=document.getElementById('lobbylist'); if(!el) return;
     el.innerHTML=list.map(r=>'<div class="seat">P'+(r.idx+1)+' <b>'+r.name+'</b> · '+SHAPES[r.shape].name+'</div>').join('');
   },
-  broadcast(msg){ for(const c of this.conns) if(c.open&&c._idx) c.send(msg); },
+  safeSend(conn,msg){
+    if(!conn||!conn._idx) return false;
+    try{ conn.send(msg); return true; }
+    catch(e){ return false; }
+  },
+  broadcast(msg){ for(const c of this.conns) this.safeSend(c,msg); },
   host(){
     if(!window.Peer){ this.status('PEERJS FAILED TO LOAD'); return; }
     this.role='host'; this.started=false; this.conns=[]; this.roster=[{idx:0,name:localPlayerName(),shape:game.selectedShape}];
@@ -1556,7 +1561,7 @@ const Net={
     this.peer=new Peer(undefined,peerOptions());
     this.peer.on('open',()=>{
       this.status('JOINING '+this.room);
-      this.clientConn=this.peer.connect('aftershape-'+this.room.toLowerCase(),{reliable:false});
+      this.clientConn=this.peer.connect('aftershape-'+this.room.toLowerCase(),{reliable:true});
       this.clientConn.on('open',()=>this.clientConn.send({t:'hello',name:localPlayerName(),shape:game.selectedShape}));
       this.clientConn.on('data',m=>this.onClientData(m));
     });
@@ -1594,9 +1599,9 @@ const Net={
       setPlayerShape(p,shape);
       drawTag(p); updateChips();
     }
-    conn.send({t:'assign',idx,room:this.room});
-    conn.send({t:'lobby',roster:this.roster});
-    if(this.started) conn.send({t:'start',snap:this.snapshot()});
+    this.safeSend(conn,{t:'assign',idx,room:this.room});
+    this.safeSend(conn,{t:'lobby',roster:this.roster});
+    if(this.started) this.safeSend(conn,{t:'start',snap:this.snapshot()});
     this.renderLobby();
     this.broadcast({t:'lobby',roster:this.roster});
     this.status('HOSTING '+this.room+' · '+(this.roster.length-1)+' JOINED');
@@ -1630,7 +1635,7 @@ const Net={
     if(this.snapT>0) return;
     this.snapT=1/12;
     const msg={t:'snap',snap:this.snapshot()};
-    for(const c of this.conns) if(c.open&&c._idx) c.send(msg);
+    this.broadcast(msg);
   },
   snapshot(){
     return {

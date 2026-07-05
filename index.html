@@ -106,12 +106,11 @@ html,body{margin:0;padding:0;background:var(--ink);overflow:hidden;height:100%;
   border:2px solid #3a4d84;background:rgba(8,12,28,.8);color:#cfe0ff;font-size:18px;cursor:pointer}
 body.panic #scan{opacity:.16;background:repeating-linear-gradient(0deg,rgba(255,90,30,.35) 0 1px,transparent 1px 3px)}
 body.panic #timer,body.panic #crownlbl{text-shadow:0 0 12px rgba(255,120,40,.95),0 0 34px rgba(255,55,20,.6)}
-#touchActions{position:fixed;right:12px;bottom:14px;z-index:11;display:none;grid-template-columns:repeat(3,54px);gap:8px;pointer-events:auto}
-.tact{width:54px;height:54px;border-radius:50%;border:2px solid rgba(61,242,255,.72);background:rgba(5,8,20,.62);
-  color:#dfeaff;font:900 10px Arial;letter-spacing:.5px;box-shadow:0 0 14px rgba(61,242,255,.28),inset 0 0 12px rgba(61,242,255,.1)}
-.tact:active{transform:scale(.94);background:rgba(61,242,255,.2)}
-.tact.gold{border-color:rgba(255,210,74,.8);box-shadow:0 0 14px rgba(255,210,74,.32),inset 0 0 12px rgba(255,210,74,.12)}
-@media (pointer:coarse),(max-width:760px){#hud:not(.hidden)~#touchActions{display:grid}#mehud{bottom:134px}#ghosthint{bottom:128px}}
+#oneThumbHint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:11;display:none;
+  padding:8px 12px;border:1px solid rgba(61,242,255,.5);border-radius:4px;background:rgba(5,8,20,.58);
+  color:#dfeaff;font:800 10px Arial;letter-spacing:1px;text-align:center;pointer-events:none;
+  box-shadow:0 0 14px rgba(61,242,255,.22),inset 0 0 12px rgba(61,242,255,.08)}
+@media (pointer:coarse),(max-width:760px){#hud:not(.hidden)~#oneThumbHint{display:block}#mehud{bottom:64px}#ghosthint{bottom:60px}}
 #joy,#joyk{position:fixed;z-index:9;border-radius:50%;pointer-events:none;display:none}
 #joy{width:96px;height:96px;border:2px solid rgba(120,180,255,.35)}
 #joyk{width:40px;height:40px;background:rgba(120,190,255,.35);box-shadow:0 0 12px rgba(61,242,255,.5)}
@@ -135,14 +134,7 @@ body.panic #timer,body.panic #crownlbl{text-shadow:0 0 12px rgba(255,120,40,.95)
   <div id="cd"></div>
 </div>
 <div id="joy"></div><div id="joyk"></div>
-<div id="touchActions" aria-label="mobile controls">
-  <button class="tact" data-act="jump">JUMP</button>
-  <button class="tact gold" data-act="grab">GRAB</button>
-  <button class="tact" data-act="dash">DASH</button>
-  <button class="tact" data-act="shove">SHOVE</button>
-  <button class="tact gold" data-act="ability">POWER</button>
-  <button class="tact" data-act="emote">PING</button>
-</div>
+<div id="oneThumbHint">DRAG TO MOVE · TAP TO ACT · CROWN AUTO-GRABS</div>
 
 <div id="menu" class="overlay">
   <h1><span class="gold">AFTER</span><span class="neon">SHAPE</span></h1>
@@ -157,8 +149,8 @@ body.panic #timer,body.panic #crownlbl{text-shadow:0 0 12px rgba(255,120,40,.95)
     <div id="lobbylist"></div>
   </div>
   <div id="howto">
-    MOVE: <b>WASD</b> · JUMP: <b>SPACE</b> · DASH: <b>SHIFT</b> · GRAB: <b>E</b> · SHOVE: <b>LMB</b> · ABILITY: <b>RMB</b><br>
-    KO'd? You turn into an <b>AFTERSHAPE</b>. As a ghost, float close and <b>SHIFT</b> / tap right to NUDGE it.
+    PHONE: <b>DRAG ANYWHERE</b> to move · <b>TAP</b> to dash, shove, ability, or ghost nudge · crown auto-grabs<br>
+    DESKTOP: <b>WASD</b> move · <b>SPACE</b> jump · <b>SHIFT</b> dash · <b>LMB</b> shove · <b>RMB</b> ability
   </div>
   <button id="startbtn" class="nbtn">ENTER THE ARENA</button>
 </div>
@@ -435,14 +427,12 @@ const arenaProps={bouncePads:[],pitGaps:[],cover:[],platforms:[],panels:[],ramps
     const ramp=new THREE.Mesh(new THREE.BoxGeometry(2.7,0.22,5.7),new THREE.MeshStandardMaterial({color:0x102446,roughness:0.36,metalness:0.55,emissive:0x062d40,emissiveIntensity:0.45}));
     ramp.position.set(Math.cos(a)*3.1,0.14,Math.sin(a)*3.1);
     ramp.rotation.y=-a; ramp.rotation.x=0.11;
-    floorDecal('RAMP','#3df2ff',1.8,0.62,Math.cos(a)*3.9,Math.sin(a)*3.9,0.31,-a);
     arena.add(ramp); arenaProps.ramps.push({mesh:ramp,a});
   }
   for(let i=0;i<4;i++){
     const a=Math.PI/4+i*Math.PI/2;
     const pad=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.05,0.16,28),amber);
     pad.position.set(Math.cos(a)*8.6,0.1,Math.sin(a)*8.6);
-    floorDecal('BOUNCE','#ffd24a',1.9,0.72,pad.position.x,pad.position.z,0.2,0);
     arena.add(pad); arenaProps.bouncePads.push({mesh:pad,x:pad.position.x,z:pad.position.z,r:1.2,cd:0});
   }
   for(const x of [-5.6,5.6]){
@@ -453,21 +443,18 @@ const arenaProps={bouncePads:[],pitGaps:[],cover:[],platforms:[],panels:[],ramps
       new THREE.MeshBasicMaterial({color:0xff2b1d,transparent:true,opacity:0.22}));
     glow.position.set(x,0.06,0); arena.add(glow);
     floorDecal('PIT','#ff5533',2.0,0.9,x,0,0.19,Math.PI/2);
-    floorDecal('DROP','#ffb13d',1.8,0.65,x,1.42,0.19,Math.PI/2);
-    floorDecal('DROP','#ffb13d',1.8,0.65,x,-1.42,0.19,Math.PI/2);
     arenaProps.pitGaps.push({x,z:0,hx:1.2,hz:2.2});
   }
-  for(const [x,z,w,d,yaw] of [[-7,-5,1.3,3.3,0.4],[7,5,1.3,3.3,0.4],[0,-8.2,3.4,1.2,0],[0,8.2,3.4,1.2,0]]){
+  for(const [x,z,w,d,yaw] of [[-7,-5,1.3,3.3,0.4],[7,5,1.3,3.3,0.4]]){
     const block=new THREE.Mesh(new THREE.BoxGeometry(w,1.15,d),coverMat);
     block.position.set(x,0.58,z); block.rotation.y=yaw; arena.add(block);
     const edges=new THREE.LineSegments(new THREE.EdgesGeometry(block.geometry),coverEdge);
     edges.position.copy(block.position); edges.rotation.copy(block.rotation); arena.add(edges);
     const foot=addRectFrame(x,z,w/2+0.18,d/2+0.18,0.13,0x3df2ff,0.78); foot.rotation.y=yaw;
-    floorDecal('WALL','#9ffbff',Math.min(2.2,w+0.5),0.55,x,z,1.2,yaw);
     arenaProps.cover.push({mesh:block,x,z,hx:w/2,hz:d/2,yaw,edge:edges,foot});
   }
-  for(let i=0;i<4;i++){
-    const a=Math.PI/4+i*Math.PI/2;
+  for(let i=0;i<2;i++){
+    const a=Math.PI/4+i*Math.PI;
     const col=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.7,2.4,8),coverMat);
     col.position.set(Math.cos(a)*5.9,1.2,Math.sin(a)*5.9); arena.add(col);
     const ring=new THREE.Mesh(new THREE.TorusGeometry(0.95,0.055,8,32),cyan);
@@ -481,12 +468,11 @@ const arenaProps={bouncePads:[],pitGaps:[],cover:[],platforms:[],panels:[],ramps
     plat.position.set(baseX,0.13,baseZ); arena.add(plat);
     const edge=new THREE.LineSegments(new THREE.EdgesGeometry(plat.geometry),coverEdge);
     edge.position.copy(plat.position); arena.add(edge);
-    const label=floorDecal('MOVE','#3df2ff',2.2,0.55,baseX,baseZ,0.28,0);
-    arenaProps.platforms.push({mesh:plat,edge,label,baseX,baseZ,axis,phase:rand(Math.PI*2),x:baseX,z:baseZ,lastX:baseX,lastZ:baseZ,hx:1.7,hz:0.72});
+    arenaProps.platforms.push({mesh:plat,edge,baseX,baseZ,axis,phase:rand(Math.PI*2),x:baseX,z:baseZ,lastX:baseX,lastZ:baseZ,hx:1.7,hz:0.72});
   }
-  for(let i=0;i<12;i++){
-    const a=i*Math.PI*2/12;
-    const panel=new THREE.Mesh(new THREE.BoxGeometry(3.1,0.12,1.25),dark);
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI*2/8;
+    const panel=new THREE.Mesh(new THREE.BoxGeometry(2.7,0.1,1.05),dark);
     panel.position.set(Math.cos(a)*12.0,0.025,Math.sin(a)*12.0);
     panel.rotation.y=-a;
     arena.add(panel); arenaProps.panels.push({mesh:panel,a,fall:0});
@@ -1126,6 +1112,15 @@ function spawnAftershape(p){
 // ---------------- input ----------------
 const keys={};
 let dashQueued=false,jumpQueued=false,shoveQueued=false,abilityQueued=false,grabQueued=false;
+function queueContextAction(){
+  const me=getLocalPlayer();
+  if(!me) return;
+  if(me.ghost){ dashQueued=true; return; }
+  const ne=nearestEnemy(me);
+  if(ne&&ne.d<2.4){ shoveQueued=true; return; }
+  if(ne&&ne.d<4.4&&me.abilityCd<=0){ abilityQueued=true; return; }
+  dashQueued=true;
+}
 function queueAction(act){
   Snd.init(); Snd.resume();
   if(act==='dash') dashQueued=true;
@@ -1133,6 +1128,7 @@ function queueAction(act){
   else if(act==='shove') shoveQueued=true;
   else if(act==='ability') abilityQueued=true;
   else if(act==='grab') grabQueued=true;
+  else if(act==='context') queueContextAction();
   else if(act==='emote'){
     const me=getLocalPlayer();
     if(me) floater(me.ghost?'PING!':'HEY!',me.x,me.y+2.2,me.z,me.colorCss,1.1);
@@ -1154,9 +1150,9 @@ document.querySelectorAll('.tact').forEach(btn=>{
     queueAction(btn.dataset.act);
   });
 });
-// touch: left half = joystick, right half = dash
+// touch: one-thumb control. Drag anywhere to move; quick tap acts.
 const joyEl=document.getElementById('joy'),joykEl=document.getElementById('joyk');
-let joyId=null,joyOX=0,joyOY=0,joyVX=0,joyVY=0;
+let joyId=null,joyOX=0,joyOY=0,joyVX=0,joyVY=0,joyStartT=0,joyMoved=false;
 function joyShow(x,y){ joyEl.style.display='block';joykEl.style.display='block';
   joyEl.style.left=(x-48)+'px';joyEl.style.top=(y-48)+'px';
   joykEl.style.left=(x-20)+'px';joykEl.style.top=(y-20)+'px'; }
@@ -1169,19 +1165,27 @@ renderer.domElement.addEventListener('pointerdown',e=>{
     else if(e.button===2) abilityQueued=true;
     return;
   }
-  if(e.clientX<innerWidth*0.5&&joyId===null){
-    joyId=e.pointerId; joyOX=e.clientX; joyOY=e.clientY; joyShow(joyOX,joyOY);
-  }else{ dashQueued=true; }
+  if(joyId===null){
+    joyId=e.pointerId; joyOX=e.clientX; joyOY=e.clientY; joyStartT=now(); joyMoved=false;
+    joyShow(joyOX,joyOY);
+  }
 });
 addEventListener('pointermove',e=>{
   if(e.pointerId!==joyId) return;
   let dx=e.clientX-joyOX,dy=e.clientY-joyOY;
   const l=Math.sqrt(dx*dx+dy*dy);
+  if(l>10) joyMoved=true;
   if(l>44){ dx*=44/l; dy*=44/l; }
   joyVX=dx/44; joyVY=dy/44;
   joyKnob(joyOX+dx,joyOY+dy);
 });
-addEventListener('pointerup',e=>{ if(e.pointerId===joyId){ joyId=null; joyHide(); } });
+addEventListener('pointerup',e=>{
+  if(e.pointerId===joyId){
+    const tap=!joyMoved&&now()-joyStartT<0.28;
+    joyId=null; joyHide();
+    if(tap) queueAction('context');
+  }
+});
 addEventListener('pointercancel',e=>{ if(e.pointerId===joyId){ joyId=null; joyHide(); } });
 function humanMove(){
   let mx=0,mz=0;
@@ -1493,8 +1497,6 @@ function updatePlayers(dt){
   if(c.state==='free'&&g.crownLock<=0){
     for(const p of ps){
       if(!p.alive||p.ghost||p.falling) continue;
-      if(p.netRemote&&!(p.netInput&&p.netInput.grab)) continue;
-      if(!p.isBot&&!p.netRemote&&p.idx===0&&!grabQueued) continue;
       if(hyp(p.x-c.x,p.z-c.z)<p.r+0.6&&c.y<1.4){
         if(c.lockT>0&&c.lockIdx===p.idx) continue;
         c.grab(p); break;
@@ -1543,7 +1545,7 @@ function doKO(p){
     if(!p.isBot){
       const gh=document.getElementById('ghosthint');
       gh.classList.remove('hidden');
-      gh.innerHTML="YOU'RE A GHOST \u2014 float next to your AFTERSHAPE and press <b>SHIFT</b> / tap right to NUDGE it";
+      gh.innerHTML="YOU'RE A GHOST \u2014 float next to your AFTERSHAPE and press <b>SHIFT</b> / tap to NUDGE it";
     }
     updateChips();
     checkLastStanding();

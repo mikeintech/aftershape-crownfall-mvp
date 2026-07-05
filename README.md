@@ -46,19 +46,16 @@ Desktop:
 - WASD: move
 - Space: jump
 - Shift: dash, or ghost nudge after knockout
-- E: grab or release crown
+- E: release crown
 - Left mouse: shove
 - Right mouse: shape ability
 
 Mobile:
 
-- Drag left side: move
-- JUMP: jump
-- GRAB: grab or release crown
-- DASH: dash, or ghost nudge after knockout
-- SHOVE: shove
-- POWER: shape ability
-- PING: quick visual ping
+- Drag anywhere: move
+- Tap anywhere: context action
+- Context action does dash, shove, ability, or ghost nudge depending on the situation
+- Crown pickup is automatic
 
 ## Arena MVP
 
@@ -66,7 +63,7 @@ Mobile:
 - Four bounce pads
 - Two pit gaps
 - Two moving platforms
-- Cover blocks and columns
+- Two cover blocks and two columns
 - Panic Mode shrinking safe ring
 - Outer panels fall away during Panic Mode
 
